@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: shopsense-postgres
+    environment:
+      POSTGRES_DB: shopsense_db
+      POSTGRES_USER: shopsense_user
+      POSTGRES_PASSWORD: shopsense_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - shopsense_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  shopsense_postgres_data:
