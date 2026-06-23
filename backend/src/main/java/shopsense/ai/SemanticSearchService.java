@@ -8,6 +8,7 @@ import shopsense.product.ProductRepository;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -41,14 +42,17 @@ public class SemanticSearchService {
 
     public List<SemanticSearchResponse> search(SemanticSearchRequest request) {
         List<Double> queryEmbedding = embeddingService.embed(request.query());
+        List<Product> activeProducts = productRepository.findAll()
+                .stream()
+                .filter(product -> Boolean.TRUE.equals(product.getActive()))
+                .toList();
 
         if (queryEmbedding.isEmpty()) {
-            return List.of();
+            return keywordSearch(request.query(), activeProducts);
         }
 
-        return productRepository.findAll()
+        List<SemanticSearchResponse> embeddingResults = activeProducts
                 .stream()
-                .filter(Product::getActive)
                 .map(product -> {
                     List<Double> productEmbedding = embeddingService.fromJson(product.getEmbeddingJson());
                     double similarity = cosineSimilarity(queryEmbedding, productEmbedding);
@@ -60,6 +64,46 @@ public class SemanticSearchService {
                 .limit(10)
                 .map(result -> toResponse(result.product(), result.similarity()))
                 .toList();
+
+        if (embeddingResults.isEmpty()) {
+            return keywordSearch(request.query(), activeProducts);
+        }
+
+        return embeddingResults;
+    }
+
+    private List<SemanticSearchResponse> keywordSearch(String query, List<Product> products) {
+        return products.stream()
+                .map(product -> new ProductSimilarity(product, keywordScore(query, product)))
+                .filter(result -> result.similarity() > 0)
+                .sorted(Comparator.comparing(ProductSimilarity::similarity).reversed())
+                .limit(10)
+                .map(result -> toResponse(result.product(), result.similarity()))
+                .toList();
+    }
+
+    private double keywordScore(String query, Product product) {
+        if (query == null || query.isBlank()) {
+            return 0.5;
+        }
+
+        String text = buildProductText(product).toLowerCase(Locale.ROOT);
+        String[] terms = query.toLowerCase(Locale.ROOT).split("[^a-z0-9]+");
+        double score = 0.0;
+
+        for (String term : terms) {
+            if (term.length() < 2) {
+                continue;
+            }
+
+            if (product.getName() != null && product.getName().toLowerCase(Locale.ROOT).contains(term)) {
+                score += 0.35;
+            } else if (text.contains(term)) {
+                score += 0.15;
+            }
+        }
+
+        return Math.min(score, 0.95);
     }
 
     private String buildProductText(Product product) {

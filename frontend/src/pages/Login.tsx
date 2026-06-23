@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Mail, LockKeyhole, Chrome } from "lucide-react";
+import { Eye, EyeOff, Mail, LockKeyhole, CircleUserRound  } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -75,7 +75,7 @@ export default function Login() {
                   onClick={() => toast("Google login placeholder")}
                   className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
-                  <Chrome className="h-5 w-5" aria-hidden="true" />
+                  <CircleUserRound  className="h-5 w-5" aria-hidden="true" />
                   Continue with Google
                 </button>
 

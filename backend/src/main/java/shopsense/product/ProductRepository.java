@@ -7,10 +7,13 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsBySlug(String slug);
+
+    Optional<Product> findBySlug(String slug);
 
     List<Product> findTop50ByActiveTrueOrderByAverageRatingDesc();
 

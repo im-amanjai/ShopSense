@@ -2,6 +2,7 @@ package shopsense.cart;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import shopsense.inventory.Inventory;
 import shopsense.inventory.InventoryRepository;
 import shopsense.product.Product;
@@ -25,12 +26,14 @@ public class CartService {
     private final UserRepository userRepository;
     private final RecommendationService recommendationService;
 
+    @Transactional
     public CartResponse getCart(String email) {
         User user = findUser(email);
         Cart cart = getOrCreateActiveCart(user);
         return toResponse(cart);
     }
 
+    @Transactional
     public CartResponse addItem(String email, CartItemRequest request) {
         User user = findUser(email);
         Cart cart = getOrCreateActiveCart(user);
@@ -42,12 +45,16 @@ public class CartService {
         validateStock(product.getId(), request.quantity());
 
         CartItem item = cartItemRepository.findByCartAndProduct(cart, product)
-                .orElseGet(() -> CartItem.builder()
+                .orElseGet(() -> {
+                    CartItem newItem = CartItem.builder()
                         .cart(cart)
                         .product(product)
                         .quantity(0)
                         .priceAtTime(product.getPrice())
-                        .build());
+                        .build();
+                    cart.getItems().add(newItem);
+                    return newItem;
+                });
 
         int newQuantity = item.getQuantity() + request.quantity();
         validateStock(product.getId(), newQuantity);
@@ -61,6 +68,7 @@ public class CartService {
         return toResponse(cartRepository.save(cart));
     }
 
+    @Transactional
     public CartResponse updateItem(String email, Long itemId, CartItemRequest request) {
         User user = findUser(email);
         Cart cart = getOrCreateActiveCart(user);
@@ -90,6 +98,7 @@ public class CartService {
         return toResponse(cart);
     }
 
+    @Transactional
     public CartResponse removeItem(String email, Long itemId) {
         User user = findUser(email);
         Cart cart = getOrCreateActiveCart(user);
@@ -102,6 +111,7 @@ public class CartService {
         }
 
         cartItemRepository.delete(item);
+        cart.getItems().removeIf(cartItem -> cartItem.getId().equals(itemId));
 
         return toResponse(cart);
     }
@@ -112,13 +122,27 @@ public class CartService {
     }
 
     private Cart getOrCreateActiveCart(User user) {
-        return cartRepository.findByUserAndStatus(user, CartStatus.ACTIVE)
-                .orElseGet(() -> cartRepository.save(
-                        Cart.builder()
-                                .user(user)
-                                .status(CartStatus.ACTIVE)
-                                .build()
-                ));
+        List<Cart> activeCarts = cartRepository.findAllByUserAndStatusOrderByUpdatedAtDesc(user, CartStatus.ACTIVE);
+
+        if (activeCarts.isEmpty()) {
+            return cartRepository.save(
+                    Cart.builder()
+                            .user(user)
+                            .status(CartStatus.ACTIVE)
+                            .build()
+            );
+        }
+
+        Cart activeCart = activeCarts.getFirst();
+
+        if (activeCarts.size() > 1) {
+            activeCarts.stream()
+                    .skip(1)
+                    .forEach(cart -> cart.setStatus(CartStatus.CHECKED_OUT));
+            cartRepository.saveAll(activeCarts.subList(1, activeCarts.size()));
+        }
+
+        return activeCart;
     }
 
     private void validateStock(Long productId, Integer requestedQuantity) {

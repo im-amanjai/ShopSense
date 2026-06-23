@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
 import type { ApiErrorBody } from "../types/api";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.toString() || "";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.toString() || "http://localhost:8080/api";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -23,7 +23,7 @@ apiClient.interceptors.request.use((config) => {
 export function getApiErrorMessage(error: unknown) {
   if (axios.isAxiosError<ApiErrorBody>(error)) {
     if (error.response?.status === 502 || error.code === "ERR_NETWORK") {
-      return "The service is not reachable. The current frontend demo uses local mock data.";
+      return "The backend service is not reachable. Please start the Spring Boot server on port 8080.";
     }
 
     return (

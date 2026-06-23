@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Chrome, Eye, EyeOff, LockKeyhole, Mail, User } from "lucide-react";
+import { CircleUserRound , Eye, EyeOff, LockKeyhole, Mail, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -79,7 +79,7 @@ export default function Register() {
                   onClick={() => toast("Google signup placeholder")}
                   className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
-                  <Chrome className="h-5 w-5" aria-hidden="true" />
+                  <CircleUserRound  className="h-5 w-5" aria-hidden="true" />
                   Sign up with Google
                 </button>
 

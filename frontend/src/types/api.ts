@@ -1,7 +1,7 @@
 export type Role = "CUSTOMER" | "ADMIN";
 
-export type PaymentStatus = "PENDING" | "PAID" | "FAILED";
-export type OrderStatus = "CREATED" | "CONFIRMED" | "CANCELLED";
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+export type OrderStatus = "PLACED" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
 export type ModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type ReviewSentiment = "POSITIVE" | "NEUTRAL" | "NEGATIVE" | "TOXIC" | "SPAM";
 

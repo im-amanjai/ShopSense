@@ -28,7 +28,7 @@ public class CategoryService {
     }
 
     public List<CategoryResponse> findAll() {
-        return categoryRepository.findAll()
+        return categoryRepository.findAllWithActiveProducts()
                 .stream()
                 .map(this::toResponse)
                 .toList();
