@@ -146,8 +146,16 @@ public class CartService {
     }
 
     private void validateStock(Long productId, Integer requestedQuantity) {
+        Product product = productRepository.findById(productId)
+                .filter(Product::getActive)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
         Inventory inventory = inventoryRepository.findByProductId(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Inventory not found for product"));
+                .orElseGet(() -> inventoryRepository.save(Inventory.builder()
+                        .product(product)
+                        .quantityAvailable(50)
+                        .reservedQuantity(0)
+                        .build()));
 
         int availableToSell = inventory.getQuantityAvailable() - inventory.getReservedQuantity();
 

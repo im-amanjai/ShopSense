@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AiController {
 
-    private final OllamaShoppingAssistantService shoppingAssistantService;
+    private final GeminiShoppingAssistantService shoppingAssistantService;
     private final SemanticSearchService semanticSearchService;
 
     @PostMapping("/shopping-assistant")

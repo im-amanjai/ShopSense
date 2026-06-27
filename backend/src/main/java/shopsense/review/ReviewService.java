@@ -9,7 +9,7 @@ import shopsense.user.User;
 import shopsense.user.UserRepository;
 import shopsense.recommendation.RecommendationService;
 import shopsense.recommendation.UserEventType;
-import shopsense.ai.OllamaReviewAnalysisService;
+import shopsense.ai.GeminiReviewAnalysisService;
 import shopsense.ai.ReviewAiAnalysis;
 
 import java.util.List;
@@ -22,7 +22,7 @@ public class ReviewService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final RecommendationService recommendationService;
-    private final OllamaReviewAnalysisService ollamaReviewAnalysisService;
+    private final GeminiReviewAnalysisService geminiReviewAnalysisService;
 
     @Transactional
     public ReviewResponse createReview(String email, Long productId, ReviewRequest request) {
@@ -35,7 +35,7 @@ public class ReviewService {
         if (reviewRepository.existsByUserAndProduct(user, product)) {
             throw new IllegalArgumentException("You have already reviewed this product");
         }
-        ReviewAiAnalysis aiAnalysis = ollamaReviewAnalysisService.analyzeReview(
+        ReviewAiAnalysis aiAnalysis = geminiReviewAnalysisService.analyzeReview(
                 request.rating(),
                 request.comment()
         );

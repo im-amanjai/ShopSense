@@ -2,8 +2,10 @@ package shopsense.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import shopsense.category.Category;
 import shopsense.category.CategoryRepository;
 import shopsense.inventory.Inventory;
@@ -15,7 +17,6 @@ import shopsense.user.User;
 import shopsense.user.UserRepository;
 
 import java.math.BigDecimal;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -27,26 +28,18 @@ public class DataSeeder implements CommandLineRunner {
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
 
-    private static final Set<String> FRONTEND_PRODUCT_SLUGS = Set.of(
-            "sony-wh-ch720n",
-            "rgb-precision-gaming-mouse",
-            "fitpulse-amoled-smart-watch",
-            "aerorun-daily-running-shoes",
-            "boom-mini-bluetooth-speaker"
-    );
+    @Value("${shopsense.admin.email:}")
+    private String adminEmail;
+
+    @Value("${shopsense.admin.password:}")
+    private String adminPassword;
+
+    @Value("${shopsense.admin.name:Admin}")
+    private String adminName;
 
     @Override
     public void run(String... args) {
-        if (!userRepository.existsByEmail("admin@shopsense.com")) {
-            User admin = User.builder()
-                    .name("Admin")
-                    .email("admin@shopsense.com")
-                    .passwordHash(passwordEncoder.encode("admin123"))
-                    .role(Role.ADMIN)
-                    .build();
-
-            userRepository.save(admin);
-        }
+        seedAdminUser();
 
         Category audio = upsertCategory("Audio", "audio", "Headphones, speakers, and everyday sound gear.");
         Category gaming = upsertCategory("Gaming", "gaming", "Gaming accessories and performance gear.");
@@ -112,15 +105,30 @@ public class DataSeeder implements CommandLineRunner {
                 audio,
                 50
         );
+    }
 
-        productRepository.findAll()
-                .stream()
-                .filter(product -> !FRONTEND_PRODUCT_SLUGS.contains(product.getSlug()))
-                .filter(product -> Boolean.TRUE.equals(product.getActive()))
-                .forEach(product -> {
-                    product.setActive(false);
-                    productRepository.save(product);
-                });
+    private void seedAdminUser() {
+        boolean hasEmail = StringUtils.hasText(adminEmail);
+        boolean hasPassword = StringUtils.hasText(adminPassword);
+
+        if (!hasEmail && !hasPassword) {
+            return;
+        }
+
+        if (!hasEmail || !hasPassword) {
+            throw new IllegalStateException("Both shopsense.admin.email and shopsense.admin.password must be configured to seed an admin user.");
+        }
+
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseGet(() -> User.builder()
+                        .email(adminEmail)
+                        .build());
+
+        admin.setName(StringUtils.hasText(adminName) ? adminName : "Admin");
+        admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+        admin.setRole(Role.ADMIN);
+
+        userRepository.save(admin);
     }
 
     private Category upsertCategory(String name, String slug, String description) {

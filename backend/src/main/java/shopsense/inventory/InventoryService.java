@@ -2,6 +2,7 @@ package shopsense.inventory;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import shopsense.product.Product;
 import shopsense.product.ProductRepository;
 
@@ -38,9 +39,20 @@ public class InventoryService {
         return toResponse(inventory);
     }
 
+    @Transactional
     public List<InventoryResponse> findAll() {
+        productRepository.findByActiveTrue().forEach(product ->
+                inventoryRepository.findByProductId(product.getId())
+                        .orElseGet(() -> inventoryRepository.save(Inventory.builder()
+                                .product(product)
+                                .quantityAvailable(50)
+                                .reservedQuantity(0)
+                                .build()))
+        );
+
         return inventoryRepository.findAll()
                 .stream()
+                .filter(inventory -> Boolean.TRUE.equals(inventory.getProduct().getActive()))
                 .map(this::toResponse)
                 .toList();
     }

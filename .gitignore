@@ -1,2 +1,6 @@
 .idea/
 .DS_Store
+.env
+.env.*
+backend/application-local.properties
+backend/src/main/resources/application-local.properties

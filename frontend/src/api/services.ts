@@ -11,10 +11,13 @@ import type {
   CartResponse,
   CategoryResponse,
   CurrentUserResponse,
+  InventoryRequest,
+  InventoryResponse,
   OrderResponse,
   PageResponse,
   PaymentRequest,
   PaymentResponse,
+  ProductRequest,
   ProductResponse,
   ProductSearchParams,
   RecommendationResponse,
@@ -210,5 +213,48 @@ export const aiApi = {
   semanticSearch: async (payload: SemanticSearchRequest): Promise<SemanticSearchResponse[]> => {
     const { data } = await apiClient.post<SemanticSearchResponse[]>("/ai/semantic-search", payload);
     return data.map(normalizeSemanticResult);
+  },
+};
+
+export const adminApi = {
+  createProduct: async (payload: ProductRequest): Promise<ProductResponse> => {
+    const { data } = await apiClient.post<ProductResponse>("/admin/products", payload);
+    return normalizeProduct(data);
+  },
+
+  updateProduct: async (id: number, payload: ProductRequest): Promise<ProductResponse> => {
+    const { data } = await apiClient.put<ProductResponse>(`/admin/products/${id}`, payload);
+    return normalizeProduct(data);
+  },
+
+  deleteProduct: async (id: number): Promise<void> => {
+    await apiClient.delete(`/admin/products/${id}`);
+  },
+
+  findInventory: async (): Promise<InventoryResponse[]> => {
+    const { data } = await apiClient.get<InventoryResponse[]>("/admin/inventory");
+    return data;
+  },
+
+  updateInventory: async (productId: number, payload: InventoryRequest): Promise<InventoryResponse> => {
+    const { data } = await apiClient.put<InventoryResponse>(`/admin/inventory/${productId}`, payload);
+    return data;
+  },
+
+  findPendingReviews: async (): Promise<ReviewResponse[]> => {
+    const { data } = await apiClient.get<ReviewResponse[]>("/admin/reviews/pending");
+    return data;
+  },
+
+  moderateReview: async (reviewId: number, moderationStatus: "APPROVED" | "REJECTED"): Promise<ReviewResponse> => {
+    const { data } = await apiClient.patch<ReviewResponse>(`/admin/reviews/${reviewId}/moderation`, {
+      moderationStatus,
+    });
+    return data;
+  },
+
+  generateEmbeddings: async (): Promise<string> => {
+    const { data } = await apiClient.post<string>("/ai/admin/products/generate-embeddings");
+    return data;
   },
 };

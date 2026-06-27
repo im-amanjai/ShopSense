@@ -15,6 +15,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findBySlug(String slug);
 
+    List<Product> findByActiveTrue();
+
     List<Product> findTop50ByActiveTrueOrderByAverageRatingDesc();
 
     @Query("""

@@ -15,7 +15,7 @@ import java.util.Locale;
 public class SemanticSearchService {
 
     private final ProductRepository productRepository;
-    private final OllamaEmbeddingService embeddingService;
+    private final HuggingFaceEmbeddingService embeddingService;
 
     @Transactional
     public String generateEmbeddingsForAllProducts() {
@@ -38,6 +38,24 @@ public class SemanticSearchService {
         }
 
         return "Generated embeddings for " + updated + " products";
+    }
+
+    @Transactional
+    public boolean generateEmbeddingForProduct(Product product) {
+        if (product == null || !Boolean.TRUE.equals(product.getActive())) {
+            return false;
+        }
+
+        List<Double> embedding = embeddingService.embed(buildProductText(product));
+
+        if (embedding.isEmpty()) {
+            return false;
+        }
+
+        product.setEmbeddingJson(embeddingService.toJson(embedding));
+        productRepository.save(product);
+
+        return true;
     }
 
     public List<SemanticSearchResponse> search(SemanticSearchRequest request) {

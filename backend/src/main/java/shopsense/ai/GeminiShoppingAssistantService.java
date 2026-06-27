@@ -16,16 +16,19 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class OllamaShoppingAssistantService {
+public class GeminiShoppingAssistantService {
 
     private final ProductRepository productRepository;
     private final RecommendationService recommendationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${ollama.url}")
-    private String ollamaUrl;
+    @Value("${gemini.api-key:}")
+    private String apiKey;
 
-    @Value("${ollama.model}")
+    @Value("${gemini.base-url}")
+    private String baseUrl;
+
+    @Value("${gemini.chat-model}")
     private String model;
 
     public ShoppingAssistantResponse ask(String email, ShoppingAssistantRequest request) {
@@ -37,21 +40,32 @@ public class OllamaShoppingAssistantService {
             );
         }
 
+        if (apiKey == null || apiKey.isBlank()) {
+            return fallbackResponse(request.message(), products);
+        }
+
         try {
             String prompt = buildPrompt(request.message(), products);
-
             RestClient restClient = RestClient.builder()
-                    .baseUrl(ollamaUrl)
+                    .baseUrl(baseUrl)
                     .defaultHeader("Content-Type", "application/json")
                     .build();
 
             Map<String, Object> requestBody = Map.of(
-                    "model", model,
-                    "prompt", prompt,
-                    "stream", false
+                    "contents", List.of(Map.of(
+                            "parts", List.of(Map.of("text", prompt))
+                    )),
+                    "generationConfig", Map.of(
+                            "temperature", 0.2,
+                            "responseMimeType", "application/json"
+                    )
             );
 
             String response = restClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/models/{model}:generateContent")
+                            .queryParam("key", apiKey)
+                            .build(model))
                     .body(requestBody)
                     .retrieve()
                     .body(String.class);
@@ -77,17 +91,14 @@ public class OllamaShoppingAssistantService {
         }
 
         return """
-                You are an AI shopping assistant for an e-commerce app.
+                You are ShopSense AI, a shopping assistant for an e-commerce app.
 
-                You must recommend products ONLY from the product catalog below.
+                Recommend products ONLY from the catalog below.
                 Do not invent products.
                 Use product IDs exactly as given.
-                If an exact match is not available, recommend the closest matching products from the catalog. Only return empty recommendedProductIds if the catalog has no remotely relevant products.
+                If an exact match is not available, recommend the closest matching catalog products.
 
-                Return ONLY valid JSON.
-                Do not include markdown or explanation outside JSON.
-
-                JSON format:
+                Return ONLY valid JSON:
                 {
                   "answer": "short helpful answer",
                   "recommendedProductIds": [1, 2, 3],
@@ -107,21 +118,22 @@ public class OllamaShoppingAssistantService {
 
     private ShoppingAssistantResponse parseResponse(String response, List<Product> products) throws Exception {
         JsonNode root = objectMapper.readTree(response);
-        String aiText = root.path("response").asText();
+        String aiText = root.path("candidates")
+                .path(0)
+                .path("content")
+                .path("parts")
+                .path(0)
+                .path("text")
+                .asText();
 
-        String json = extractJson(aiText);
-        JsonNode result = objectMapper.readTree(json);
-
+        JsonNode result = objectMapper.readTree(extractJson(aiText));
         String answer = result.path("answer").asText("Here are some products you may like.");
-
         List<ShoppingAssistantProductResponse> recommendedProducts = new ArrayList<>();
-
         JsonNode ids = result.path("recommendedProductIds");
 
         if (ids.isArray()) {
             for (JsonNode idNode : ids) {
                 Long productId = idNode.asLong();
-
                 products.stream()
                         .filter(product -> product.getId().equals(productId))
                         .findFirst()
@@ -129,7 +141,6 @@ public class OllamaShoppingAssistantService {
                             String reason = result.path("reasons")
                                     .path(String.valueOf(product.getId()))
                                     .asText("Recommended based on your request.");
-
                             recommendedProducts.add(toProductResponse(product, reason));
                         });
             }
@@ -139,7 +150,7 @@ public class OllamaShoppingAssistantService {
     }
 
     private ShoppingAssistantResponse fallbackResponse(String message, List<Product> products) {
-        String lowerMessage = message.toLowerCase();
+        String lowerMessage = message == null ? "" : message.toLowerCase();
 
         List<Product> matched = products.stream()
                 .filter(product ->
@@ -160,7 +171,7 @@ public class OllamaShoppingAssistantService {
                 .toList();
 
         return new ShoppingAssistantResponse(
-                "Ollama is unavailable, so I selected products using basic catalog matching.",
+                "Gemini is not configured, so I selected products using basic catalog matching.",
                 productResponses
         );
     }

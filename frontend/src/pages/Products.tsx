@@ -6,7 +6,7 @@ import ProductCard from "../components/products/ProductCard";
 import EmptyState from "../components/ui/EmptyState";
 import ErrorState from "../components/ui/ErrorState";
 import LoadingState from "../components/ui/LoadingState";
-import { categoryApi, productApi } from "../api/services";
+import { aiApi, categoryApi, productApi } from "../api/services";
 import { getApiErrorMessage } from "../api/client";
 import type { CategoryResponse, ProductResponse } from "../types/api";
 
@@ -29,13 +29,29 @@ export default function Products() {
       setIsLoading(true);
       setError(null);
       try {
-        const [productPage, categoryList] = await Promise.all([
-          productApi.search({ query: activeQuery, category: activeCategory, size: 24 }),
+        const [productData, categoryList] = await Promise.all([
+          activeQuery
+            ? aiApi.semanticSearch({ query: activeQuery }).then((results) => ({
+                content: results.map((item) => ({
+                  id: item.productId,
+                  name: item.name,
+                  slug: String(item.productId),
+                  description: null,
+                  price: item.price,
+                  brand: item.brand,
+                  imageUrl: item.imageUrl,
+                  averageRating: item.averageRating,
+                  active: true,
+                  categoryId: 0,
+                  categoryName: item.categoryName,
+                })),
+              }))
+            : productApi.search({ category: activeCategory, size: 24 }),
           categoryApi.findAll(),
         ]);
 
         if (!cancelled) {
-          setProducts(productPage.content);
+          setProducts(productData.content);
           setCategories(categoryList);
         }
       } catch (loadError) {
@@ -85,7 +101,7 @@ export default function Products() {
               {heading}
             </h1>
             <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-400">
-              Products are loaded from local mock data using API-ready types and filters.
+              Products are loaded from the backend catalog, with semantic search for natural product queries.
             </p>
           </div>
         </div>

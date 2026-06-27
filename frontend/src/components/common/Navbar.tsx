@@ -76,6 +76,11 @@ export default function Navbar() {
           <NavLink to="/dashboard" className={navLinkClass}>
             Dashboard
           </NavLink>
+          {user?.role === "ADMIN" && (
+            <NavLink to="/admin" className={navLinkClass}>
+              Admin
+            </NavLink>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -169,6 +174,11 @@ export default function Navbar() {
             <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} className={navLinkClass}>
               Dashboard
             </NavLink>
+            {user?.role === "ADMIN" && (
+              <NavLink to="/admin" onClick={() => setMenuOpen(false)} className={navLinkClass}>
+                Admin
+              </NavLink>
+            )}
             {!isAuthenticated && (
               <>
                 <Link to="/login" onClick={() => setMenuOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300">

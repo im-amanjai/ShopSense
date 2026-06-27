@@ -9,6 +9,7 @@ import Checkout from "../pages/Checkout";
 import OrderSuccess from "../pages/OrderSuccess";
 import Dashboard from "../pages/Dashboard";
 import Orders from "../pages/Orders";
+import Admin from "../pages/Admin";
 import ProtectedRoute from "../components/ui/ProtectedRoute";
 
 export default function AppRoutes() {
@@ -27,6 +28,10 @@ export default function AppRoutes() {
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />
+        </Route>
+
+        <Route element={<ProtectedRoute role="ADMIN" />}>
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Routes>
     </BrowserRouter>

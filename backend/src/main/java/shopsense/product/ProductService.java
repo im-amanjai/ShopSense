@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import shopsense.ai.SemanticSearchService;
 import shopsense.category.Category;
 import shopsense.category.CategoryRepository;
+import shopsense.inventory.Inventory;
+import shopsense.inventory.InventoryRepository;
 
 import java.math.BigDecimal;
 
@@ -15,6 +18,8 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final InventoryRepository inventoryRepository;
+    private final SemanticSearchService semanticSearchService;
 
     public ProductResponse create(ProductRequest request) {
         if (productRepository.existsBySlug(request.slug())) {
@@ -36,6 +41,12 @@ public class ProductService {
                 .build();
 
         Product savedProduct = productRepository.save(product);
+        inventoryRepository.save(Inventory.builder()
+                .product(savedProduct)
+                .quantityAvailable(50)
+                .reservedQuantity(0)
+                .build());
+        semanticSearchService.generateEmbeddingForProduct(savedProduct);
 
         return toResponse(savedProduct);
     }
@@ -74,8 +85,10 @@ public class ProductService {
         product.setBrand(request.brand());
         product.setImageUrl(request.imageUrl());
         product.setCategory(category);
+        product.setEmbeddingJson(null);
 
         Product savedProduct = productRepository.save(product);
+        semanticSearchService.generateEmbeddingForProduct(savedProduct);
 
         return toResponse(savedProduct);
     }
